@@ -339,6 +339,10 @@
 				transition: none !important;
 			}
 		}
+
+		button{
+			user-select: none;
+		}
 	</style>
 </head>
 
@@ -351,12 +355,12 @@
 					<p class="sub">Soizoktantas 作製</p>
 				</div>
 				<div class="actions">
-					<button id="btnRun" type="button" title="Run (⌘/Ctrl + Enter)">
-						実行
-					</button>
-					<button id="btnCopy" type="button" title="Copy">
-						コピー
-					</button>
+				<button id="btnClear" type="button" title="Clear">
+					全消去
+				</button>
+				<button id="btnCopy" type="button" title="Copy">
+					コピー
+				</button>
 				</div>
 			</header>
 
@@ -739,6 +743,10 @@
 			);
 		}
 
+		function removeLineBreaks(str) {
+			return (str || "").replace(/[\r\n\u2028\u2029]+/g, "");
+		}
+
 		function ljust_disp(s, width) {
 			return s + " ".repeat(Math.max(0, width - str_width(s)));
 		}
@@ -898,9 +906,11 @@
 				const raw_opts = [];
 				const seen = new Set();
 				for (const line of raw_lines) {
-					if (seen.has(line)) continue;
-					seen.add(line);
-					raw_opts.push(line);
+					const normalizedLine = removeLineBreaks(line);
+					if (!normalizedLine) continue;
+					if (seen.has(normalizedLine)) continue;
+					seen.add(normalizedLine);
+					raw_opts.push(normalizedLine);
 				}
 
 				const option_info = [];
@@ -908,16 +918,20 @@
 					const customSeen = new Set();
 					for (const display of customDisplays) {
 						if (!display) continue;
-						if (customSeen.has(display)) continue;
-						customSeen.add(display);
-						const h = sha256.hex(display);
-						option_info.push([display, h]);
+						const normalizedDisplay = removeLineBreaks(display);
+						if (!normalizedDisplay) continue;
+						if (customSeen.has(normalizedDisplay)) continue;
+						customSeen.add(normalizedDisplay);
+						const h = sha256.hex(normalizedDisplay);
+						option_info.push([normalizedDisplay, h]);
 					}
 				} else {
-					const prefixValue = prefix || "";
-					const suffixValue = suffix || "";
+					const prefixValue = removeLineBreaks(prefix || "");
+					const suffixValue = removeLineBreaks(suffix || "");
 					for (const opt of raw_opts) {
-						const display = `${prefixValue}${opt}${suffixValue}`;
+						const display = removeLineBreaks(
+							`${prefixValue}${opt}${suffixValue}`
+						);
 						const h = sha256.hex(display);
 						option_info.push([display, h]);
 					}
@@ -996,7 +1010,7 @@
 		const input = $("#input");
 		const status = $("#status");
 		const meta = $("#meta");
-		const btnRun = $("#btnRun");
+		const btnClear = $("#btnClear");
 		const btnCopy = $("#btnCopy");
 		const resultBody = $("#resultBody");
 		const resultNotes = $("#resultNotes");
@@ -1020,7 +1034,7 @@
 				const cell = document.createElement("td");
 				cell.setAttribute("colspan", "2");
 				cell.className = "muted";
-				cell.textContent = "輸入選項即可看結果";
+				cell.textContent = "選択肢を入力";
 				row.appendChild(cell);
 				resultBody.appendChild(row);
 				return;
@@ -1038,6 +1052,26 @@
 				resultBody.appendChild(row);
 				currentResults.push({ display, score });
 			}
+		}
+
+		function setBinaryMode(state) {
+			binaryMode = state;
+			binaryToggle.classList.toggle("is-active", state);
+			binaryToggle.setAttribute("aria-pressed", String(state));
+			binaryToggle.textContent = state ? "二選：開" : "二選：關";
+			negationContainer.hidden = !state;
+		}
+
+		function clearAll() {
+			input.value = "";
+			prefixInput.value = "";
+			suffixInput.value = "";
+			negationInput.value = "不";
+			setBinaryMode(false);
+			renderResults([]);
+			resultNotes.textContent = "";
+			meta.textContent = "—";
+			setStatus("待機");
 		}
 
 		async function run() {
@@ -1111,18 +1145,12 @@
 			}
 		}
 
-		btnRun.addEventListener("click", run);
+		btnClear.addEventListener("click", clearAll);
 		btnCopy.addEventListener("click", copyOut);
 		prefixInput.addEventListener("input", run);
 		suffixInput.addEventListener("input", run);
 		binaryToggle.addEventListener("click", () => {
-			binaryMode = !binaryMode;
-			binaryToggle.classList.toggle("is-active", binaryMode);
-			binaryToggle.setAttribute("aria-pressed", String(binaryMode));
-			binaryToggle.textContent = binaryMode
-				? "二選：開"
-				: "二選：關";
-			negationContainer.hidden = !binaryMode;
+			setBinaryMode(!binaryMode);
 			run();
 		});
 		negationInput.addEventListener("input", run);
