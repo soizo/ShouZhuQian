@@ -16,9 +16,9 @@ Each option's score is determined by:
 
 1. The SHA-256 hash of the option's display text
 2. The current lunar year (Anno Imperatoris Fulvi Xuanyuan), month, and day
-3. The current _shichen_ (traditional two-hour period) and _ke_ (quarter-hour fraction)
+3. The current 時辰 (traditional two-hour period) and 刻 (quarter-hour fraction)
 
-Results are deterministic: the same options within the same _shichen_ always produce the same ranking.
+Results are deterministic: the same options within the same 時辰 always produce the same ranking.
 
 ## Usage
 
